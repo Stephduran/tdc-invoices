@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TDC Invoice Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -539,9 +540,27 @@ btnProc.addEventListener('click',async()=>{
     const rateTable=Object.entries(RATES).map(([k,v])=>k+': $'+v.rate.toFixed(2)+' — '+v.desc).join('\n');
     const sys='You are a data extraction assistant for TDC Communications.\nExtract line items from construction job files.\n\nTDC RATES (always use these):\n'+rateTable+'\n\nRules:\n- Excel dailies: only rows with non-zero QTY\n- PDF sub invoices: only items with qty > 0\n- Combine same codes across files (sum qty)\n- sub_total = sum of what TDC paid subs (from sub invoice totals)\n\nReturn ONLY valid JSON:\n{"line_items":[{"code":"PB35","desc":"Single Fusion Fiber Splicing","qty":3,"rate":20.00}],"sub_total":0,"notes":"brief scope"}';
 
+    // Build content — Excel parsed client-side via SheetJS, PDFs as base64
     const content=[];
-    for(const fp of payloads) content.push({type:"document",source:{type:"base64",media_type:fp.mime,data:fp.b64}});
-    content.push({type:"text",text:"Extract all line items with qty > 0. Use TDC rates. Return JSON only."});
+    for(const fp of payloads){
+      if(fp.type==='excel'){
+        const binStr=atob(fp.b64);
+        const bytes=new Uint8Array(binStr.length);
+        for(let i=0;i<binStr.length;i++) bytes[i]=binStr.charCodeAt(i);
+        const wb=XLSX.read(bytes,{type:'array',cellFormula:false,cellText:true});
+        let excelText='FILE: '+fp.name+'\n';
+        for(const sheetName of wb.SheetNames){
+          const ws=wb.Sheets[sheetName];
+          const csv=XLSX.utils.sheet_to_csv(ws,{skipHidden:true});
+          const lines=csv.split('\n').filter(l=>l.replace(/,/g,'').trim().length>0);
+          if(lines.length>3) excelText+='\nSHEET: '+sheetName+'\n'+lines.join('\n')+'\n';
+        }
+        content.push({type:'text',text:excelText});
+      } else {
+        content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:fp.b64}});
+      }
+    }
+    content.push({type:'text',text:'Extract all line items with qty > 0. Use TDC rates. Return JSON only.'});
 
     prog(60,'AI reading line items...');
     const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:getAuthHeaders(),body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:sys,messages:[{role:"user",content}]})});
