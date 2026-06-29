@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TDC Invoice Generator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1F4E79;--blue-mid:#2E6DA4;--blue-light:#E8EEF5;--blue-pale:#F4F7FB;
+  --accent:#F0A500;--text:#1a1a2e;--muted:#5a6a7a;--border:#D0DCE8;
+  --success:#1a7a4a;--success-bg:#e8f5ee;--error:#c0392b;--error-bg:#fdf0ee;
+  --r:10px;--shadow:0 2px 12px rgba(31,78,121,.10)
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--blue-pale);color:var(--text);min-height:100vh}
+.hdr{background:var(--blue);color:#fff;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.hdr-brand{display:flex;align-items:center;gap:14px}
+.hdr-logo{width:38px;height:38px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:var(--blue)}
+.hdr-title{font-size:17px;font-weight:700}
+.hdr-sub{font-size:12px;opacity:.65;margin-top:1px}
+.hdr-badge{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.main{max-width:900px;margin:0 auto;padding:28px 20px 60px}
+.steps{display:flex;margin-bottom:24px;background:#fff;border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
+.step{flex:1;padding:13px 14px;display:flex;align-items:center;gap:9px;border-right:1px solid var(--border);transition:background .2s}
+.step:last-child{border-right:none}
+.step.active{background:var(--blue-light)}
+.step.done{background:var(--success-bg)}
+.step-n{width:25px;height:25px;border-radius:50%;background:var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.step.active .step-n{background:var(--blue);color:#fff}
+.step.done .step-n{background:var(--success);color:#fff}
+.step-lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.step.active .step-lbl{color:var(--blue)}
+.step.done .step-lbl{color:var(--success)}
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+.ch{background:var(--blue);color:#fff;padding:13px 20px;display:flex;align-items:center;gap:10px}
+.ch-icon{font-size:17px}
+.ch-title{font-size:14px;font-weight:700}
+.ch-sub{font-size:11px;opacity:.7;margin-top:1px}
+.cb{padding:20px}
+.dz{border:2.5px dashed var(--blue-mid);border-radius:var(--r);padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--blue-pale);position:relative}
+.dz:hover,.dz.over{border-color:var(--accent);background:#fffbf0}
+.dz input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.dz-icon{font-size:34px;margin-bottom:8px}
+.dz-text{font-size:15px;font-weight:600;color:var(--blue)}
+.dz-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.dz-types{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.tbadge{background:var(--blue-light);color:var(--blue);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600}
+.flist{margin-top:14px;display:flex;flex-direction:column;gap:7px}
+.fi{display:flex;align-items:center;gap:9px;background:var(--blue-pale);border:1px solid var(--border);border-radius:8px;padding:9px 13px}
+.fi-icon{font-size:19px;flex-shrink:0}
+.fi-name{font-size:13px;font-weight:600;flex:1}
+.fi-type{font-size:11px;color:var(--muted)}
+.fi-rm{background:none;border:none;cursor:pointer;color:var(--error);font-size:15px;padding:2px 6px;border-radius:4px}
+.fi-rm:hover{background:var(--error-bg)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fgroup{display:flex;flex-direction:column;gap:4px}
+.fgroup.full{grid-column:1/-1}
+label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;transition:border-color .15s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--blue-mid)}
+input.required-empty{border-color:var(--error);background:var(--error-bg)}
+textarea{resize:vertical;min-height:65px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .18s}
+.btn-p{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(31,78,121,.25)}
+.btn-p:hover:not(:disabled){background:#174068;transform:translateY(-1px)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-ghost{background:#fff;color:var(--blue);border:1.5px solid var(--border)}
+.btn-ghost:hover{background:var(--blue-pale)}
+.btn-full{width:100%;justify-content:center}
+.btn-dl{background:var(--success);color:#fff}
+.btn-dl:hover{background:#155e39}
+.btn-outlook{background:#0078d4;color:#fff}
+.btn-outlook:hover{background:#005fa3}
+.sbox{border-radius:var(--r);padding:13px 15px;display:flex;align-items:flex-start;gap:11px;margin-top:14px}
+.sbox.info{background:var(--blue-light);border:1px solid #b8cfe4}
+.sbox.ok{background:var(--success-bg);border:1px solid #a8d8bb}
+.sbox.warn{background:#fff8e6;border:1px solid #f0c060}
+.sbox.err{background:var(--error-bg);border:1px solid #e8b0a8}
+.sbox-icon{font-size:17px;flex-shrink:0;margin-top:1px}
+.sbox-text{font-size:13px;line-height:1.5}
+.sbox-text strong{display:block;margin-bottom:2px}
+.prog-wrap{margin-top:12px}
+.prog-lbl{font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:600}
+.prog-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-mid));border-radius:4px;transition:width .4s ease}
+.res-card{border-radius:var(--r);border:2px solid var(--success);background:var(--success-bg);padding:20px;margin-bottom:18px}
+.res-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.res-title{font-size:16px;font-weight:700;color:var(--success)}
+.res-sum{background:#fff;border-radius:8px;border:1px solid #a8d8bb;padding:13px 15px;margin-bottom:14px;font-size:13px;line-height:1.7}
+.res-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #eef5f0}
+.res-row:last-child{border-bottom:none;font-weight:700;color:var(--blue);font-size:14px}
+.res-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.margin-pill{background:var(--blue);color:#fff;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.etbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.etbl th{background:var(--blue);color:#fff;padding:7px 10px;text-align:left;font-weight:600}
+.etbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.etbl tr:last-child td{border-bottom:none}
+.etbl tr:nth-child(even) td{background:var(--blue-pale)}
+.etbl .tot td{font-weight:700;background:var(--blue-light)!important}
+.cbadge{background:var(--blue-light);color:var(--blue);border-radius:4px;padding:2px 7px;font-weight:700;font-size:11px}
+.divider{height:1px;background:var(--border);margin:18px 0}
+.panel{display:none}
+.panel.active{display:block}
+.hidden{display:none!important}
+.api-banner{background:#1a1a2e;color:#fff;padding:10px 32px;display:flex;align-items:center;gap:12px;font-size:13px;border-bottom:2px solid var(--accent)}
+.api-banner label{color:#aab4c8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.api-banner input{flex:1;background:#2a2a42;border:1.5px solid #444;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;font-family:monospace;max-width:420px}
+.api-banner input:focus{border-color:var(--accent);outline:none}
+.api-banner input::placeholder{color:#666}
+.api-save{background:var(--accent);color:var(--blue);border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
+.api-save:hover{background:#d4920a}
+.api-status{font-size:11px;color:#7ec87e;font-weight:600}
+.api-status.missing{color:#e07070}
+.hint{font-size:11px;color:var(--muted);margin-top:2px}
+@media(max-width:600px){.fg{grid-template-columns:1fr}.steps{display:none}.main{padding:14px 10px 40px}}
+</style>
+</head>
+<body>
+
+<div class="api-banner" id="api-banner">
+  <label>&#128273; API Key</label>
+  <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off">
+  <button class="api-save" id="api-save-btn">Save</button>
+  <span class="api-status missing" id="api-status">No key saved</span>
+  <span style="margin-left:auto;font-size:11px;color:#666">Key stays in your browser only &mdash; never sent anywhere except Anthropic</span>
+</div>
+<div class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-logo">TDC</div>
+    <div><div class="hdr-title">Invoice Generator</div><div class="hdr-sub">TDC Communications, Inc.</div></div>
+  </div>
+  <div class="hdr-badge">QuickBooks Ready</div>
+</div>
+
+<div class="main">
+  <div class="steps">
+    <div class="step active" id="s1"><div class="step-n">1</div><div class="step-lbl">Upload Files</div></div>
+    <div class="step" id="s2"><div class="step-n">2</div><div class="step-lbl">Review Items</div></div>
+    <div class="step" id="s3"><div class="step-n">3</div><div class="step-lbl">Invoice &amp; Email</div></div>
+  </div>
+
+  <!-- PANEL 1 -->
+  <div class="panel active" id="p1">
+    <div class="card">
+      <div class="ch"><div class="ch-icon">&#128194;</div><div><div class="ch-title">Upload Job Paperwork</div><div class="ch-sub">Drop in Excel dailies and sub invoice PDFs for this job</div></div></div>
+      <div class="cb">
+        <div class="dz" id="dz">
+          <input type="file" id="fi" multiple accept=".xlsx,.xls,.pdf">
+          <div class="dz-icon">&#128206;</div>
+          <div class="dz-text">Drop files here or click to browse</div>
+          <div class="dz-sub">Mix Excel dailies and PDF sub invoices as needed</div>
+          <div class="dz-types"><span class="tbadge">&#128202; Excel Daily</span><span class="tbadge">&#128196; Sub Invoice PDF</span></div>
+        </div>
+        <div class="flist" id="flist"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div class="ch-icon">&#127959;</div><div><div class="ch-title">Job Details</div><div class="ch-sub">Auto-fills from uploaded files — all fields editable</div></div></div>
+      <div class="cb">
+        <div class="fg">
+
+          <div class="fgroup">
+            <label>Customer <span style="color:var(--error)">*</span></label>
+            <select id="fc">
+              <option value="">— select customer —</option>
+              <optgroup label="Uniti Fiber">
+                <option value="uniti_construction">Uniti Fiber — Construction (OSP/ISP)</option>
+                <option value="uniti_splicing">Uniti Fiber — Splicing</option>
+              </optgroup>
+              <optgroup label="Point Broadband">
+                <option value="pb_central">Point Broadband — Central AL</option>
+                <option value="pb_north">Point Broadband — North GA</option>
+                <option value="pb_south">Point Broadband — South AL</option>
+              </optgroup>
+              <optgroup label="Highline">
+                <option value="highline">Highline GA</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="fgroup">
+            <label>Invoice Number <span style="color:var(--error)">*</span></label>
+            <input type="text" id="finv" placeholder="e.g. UF0625-26A">
+            <div class="hint">UF / PB / HL + MMDD-YY + letter</div>
+          </div>
+
+          <div class="fgroup">
+            <label>Invoice Date <span style="color:var(--error)">*</span></label>
+            <input type="date" id="fd">
+          </div>
+
+          <div class="fgroup">
+            <label>W/E Date <span style="font-weight:400;text-transform:none;font-size:10px;color:var(--muted)">(PB &amp; Highline only)</span></label>
+            <input type="text" id="fwe" placeholder="e.g. 06.26.26">
+            <div class="hint">Week ending date — leave blank for Uniti</div>
+          </div>
+
+          <div class="fgroup full">
+            <label>Job Name <span style="color:var(--error)">*</span></label>
+            <input type="text" id="fjn" placeholder="e.g. Viasat Buena Vista">
+          </div>
+
+          <div class="fgroup full">
+            <label>Project Information <span style="color:var(--error)">*</span></label>
+            <input type="text" id="fpi" placeholder="e.g. CPE 447037 OID 377245 — or Network Maintenance — or SAL2026Project#07">
+            <div class="hint">Free text — enter exactly as it should appear on the invoice</div>
+          </div>
+
+          <div class="fgroup">
+            <label>Coordinator</label>
+            <input type="text" id="fco" placeholder="auto-fills by customer">
+          </div>
+
+          <div class="fgroup full">
+            <label>Note to Customer <span style="font-weight:400;text-transform:none;font-size:10px;color:var(--muted)">(optional)</span></label>
+            <textarea id="fno" placeholder="e.g. Complete. — or scope description"></textarea>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-p btn-full" id="btn-proc" disabled>
+      <span>Read Files &amp; Extract Line Items</span>
+    </button>
+    <div id="st1"></div>
+  </div>
+
+  <!-- PANEL 2 -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <div class="ch"><div class="ch-icon">&#128269;</div><div><div class="ch-title">Extracted Line Items</div><div class="ch-sub">All rates shown are TDC billing rates — adjust quantities if needed</div></div></div>
+      <div class="cb" id="rev-body"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="btn-back">&#8592; Back</button>
+      <button class="btn btn-p" style="flex:1;justify-content:center" id="btn-gen">Generate Invoice PDF</button>
+    </div>
+    <div id="st2"></div>
+  </div>
+
+  <!-- PANEL 3 -->
+  <div class="panel" id="p3">
+    <div class="res-card">
+      <div class="res-hdr"><div style="font-size:26px">&#10003;</div><div class="res-title">Invoice Ready</div></div>
+      <div class="res-sum" id="res-sum"></div>
+      <div class="res-actions">
+        <button class="btn btn-dl" id="btn-dl">&#8659; Download Invoice PDF</button>
+        <span class="margin-pill hidden" id="margin-pill"></span>
+      </div>
+    </div>
+
+    <!-- Email card (Uniti + Highline) -->
+    <div class="card hidden" id="email-card">
+      <div class="ch"><div class="ch-icon">&#9993;</div><div><div class="ch-title">Customer Email Draft</div><div class="ch-sub">Opens in Outlook — attach invoice PDF and deliverables before sending</div></div></div>
+      <div class="cb">
+        <div class="sbox warn" style="margin-bottom:16px">
+          <span class="sbox-icon">&#128206;</span>
+          <div class="sbox-text"><strong>Attach before sending:</strong> Invoice PDF + deliverables (photos and KMZ). Sub invoices and in-house dailies are internal only — do not attach.</div>
+        </div>
+        <div class="fg" style="margin-bottom:14px">
+          <div class="fgroup"><label>To</label><input type="email" id="em-to"></div>
+          <div class="fgroup"><label>CC</label><input type="text" id="em-cc"></div>
+          <div class="fgroup full"><label>Subject</label><input type="text" id="em-sub"></div>
+          <div class="fgroup full"><label>Body</label><textarea id="em-body" style="min-height:180px;font-size:13px;line-height:1.6;font-family:inherit"></textarea></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-outlook" id="btn-mailto">&#128231; Open in Outlook</button>
+          <button class="btn btn-ghost" id="btn-copy">&#128203; Copy Email Text</button>
+          <button class="btn btn-ghost" id="btn-new" style="margin-left:auto">+ New Invoice</button>
+        </div>
+        <div id="copy-confirm" class="hidden" style="margin-top:10px">
+          <div class="sbox ok"><span class="sbox-icon">&#10003;</span><div class="sbox-text">Email text copied to clipboard.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PB upload card -->
+    <div class="card hidden" id="upload-card">
+      <div class="ch" style="background:#2E6DA4"><div class="ch-icon">&#128193;</div><div><div class="ch-title">Point Broadband &#8212; Upload Required</div><div class="ch-sub">These invoices go to the PB portal, not email</div></div></div>
+      <div class="cb">
+        <div class="sbox warn" style="margin-bottom:16px">
+          <span class="sbox-icon">&#128206;</span>
+          <div class="sbox-text"><strong>What to upload to the Point Broadband folder:</strong> Invoice PDF (downloaded above) + deliverables (photos and KMZ). Do not include sub invoices or in-house dailies.</div>
+        </div>
+        <div class="sbox info">
+          <span class="sbox-icon">&#9989;</span>
+          <div class="sbox-text"><strong>Upload checklist:</strong>
+            <div style="margin-top:6px;line-height:2.2">&#9744; Invoice PDF downloaded<br>&#9744; Photos gathered<br>&#9744; KMZ file ready<br>&#9744; All files uploaded to Point Broadband folder</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end">
+          <button class="btn btn-ghost" id="btn-new-pb">+ New Invoice</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── API KEY MANAGEMENT ──────────────────────────────────────────────────
+function getKey(){ return localStorage.getItem('tdc_api_key')||''; }
+function saveKey(k){ localStorage.setItem('tdc_api_key',k); }
+
+function updateKeyStatus(){
+  const k=getKey();
+  const st=$('api-status');
+  const inp=$('api-key-input');
+  if(k){ st.textContent='Key saved ✓'; st.className='api-status'; inp.value=k; }
+  else { st.textContent='No key saved'; st.className='api-status missing'; inp.value=''; }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  updateKeyStatus();
+  $('api-save-btn').addEventListener('click',()=>{
+    const v=$('api-key-input').value.trim();
+    if(!v){ alert('Please paste your Anthropic API key first.'); return; }
+    if(!v.startsWith('sk-ant-')){ alert('That doesn\'t look like an Anthropic API key — it should start with sk-ant-'); return; }
+    saveKey(v);
+    updateKeyStatus();
+  });
+  // Allow Enter key in input
+  $('api-key-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('api-save-btn').click(); });
+});
+
+function getAuthHeaders(){
+  const k=getKey();
+  if(!k) throw new Error('No API key saved. Paste your Anthropic API key in the bar at the top and click Save.');
+  return {'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'};
+}
+
+const S = { files:[], extracted:null, pdfB64:null, pdfFilename:null, subTotal:0 };
+
+// ── COMPLETE CUSTOMER CONFIG ───────────────────────────────────────────────
+const CUSTS = {
+  uniti_construction: {
+    label: "Uniti Fiber — Construction",
+    project: "Uniti Fiber LLC:UNITI FIBER CONSTRUCTION:Uniti Fiber Construction 2026",
+    billTo: ["UNITI FIBER CONSTRUCTION","107 ST. Francis Street,","Suite 1800","Mobile, AL 36602"],
+    coordinator: "PHIL JOHNSON",
+    weekEnding: false,
+    email: "contractorinvoices@uniti.com",
+    cc: "Toby.Carroll@tdccommunications.com, deborah.carroll@tdccommunications.com, brandon.bennett@tdccommunications.com, brittany.bennett@tdccommunications.com, andrew.thompson@tdccommunications.com, alexia.speeks@tdccommunications.com",
+    emailName: "Uniti Fiber Construction Team",
+    isPB: false
+  },
+  uniti_splicing: {
+    label: "Uniti Fiber — Splicing",
+    project: "Uniti Fiber LLC:UNITI FIBER SPLICING:Uniti Fiber Splicing 2026",
+    billTo: ["UNITI FIBER SPLICING","107 ST. Francis Street,","Suite 1800","Mobile, AL 36602"],
+    coordinator: "BJ MCCAY",
+    weekEnding: false,
+    email: "splicing_po_requests@uniti.com",
+    cc: "Toby.Carroll@tdccommunications.com, brandon.bennett@tdccommunications.com, brittany.bennett@tdccommunications.com, garrett.frost@tdccommunications.com, deborah.carroll@tdccommunications.com, alexia.speeks@tdccommunications.com",
+    emailName: "Uniti Fiber Splicing Team",
+    isPB: false
+  },
+  pb_central: {
+    label: "Point Broadband — Central AL",
+    project: "Point Broadband, LLC:PBB Central AL 2026",
+    billTo: ["Point Broadband","P.O.Box 310","Opelika, AL 36801","United States"],
+    coordinator: "JEFF HENDRIX",
+    weekEnding: true,
+    email: "", cc: "", emailName: "", isPB: true
+  },
+  pb_north: {
+    label: "Point Broadband — North GA",
+    project: "Point Broadband, LLC:Point Broadband NGA:PBB North GA 2026",
+    billTo: ["Point Broadband NGA","PO Box 310","Opelika, AL 36803"],
+    coordinator: "JEFF HENDRIX",
+    weekEnding: true,
+    email: "", cc: "", emailName: "", isPB: true
+  },
+  pb_south: {
+    label: "Point Broadband — South AL",
+    project: "Point Broadband, LLC:PBB South AL 2026",
+    billTo: ["Point Broadband, LLC","PO Box 310","Opelika, AL 36801"],
+    coordinator: "RANDY PARKS",
+    weekEnding: true,
+    email: "", cc: "", emailName: "", isPB: true
+  },
+  highline: {
+    label: "Highline GA",
+    project: "HIGHLINE SERVICES:HIGHLINE GA MAINT",
+    billTo: ["HIGHLINE GA MAINT","1791 O.G. Skinner Dr.","Suite A","West Point, GA 31833"],
+    coordinator: "DILLON WATSON",
+    weekEnding: true,
+    email: "dillon.watson@highlinefast.com, jason.campbell@highlinefast.com, karon.banta@highlinefast.com",
+    cc: "Toby.Carroll@tdccommunications.com, deborah.carroll@tdccommunications.com, brandon.bennett@tdccommunications.com, brittany.bennett@tdccommunications.com, jeremy.pitman@tdccommunications.com, alexia.speeks@tdccommunications.com",
+    emailName: "Highline Team",
+    isPB: false
+  }
+};
+
+// ── RATES TABLE ────────────────────────────────────────────────────────────
+const RATES = {
+  // Point Broadband
+  PB24:{desc:"Blow/Pull fiber through conduit",rate:1.00},
+  PB35:{desc:"Single Fusion Fiber Splicing",rate:20.00},
+  PB36:{desc:"Splice Closure Preparation",rate:200.00},
+  PB38:{desc:"Hand dig trench up to 50ft",rate:15.00},
+  PB41:{desc:"Delash - Relash Fiber",rate:1.50},
+  PB54:{desc:"Pole Transfer Simple",rate:120.00},
+  PB55:{desc:"Pole Transfer Complex",rate:150.00},
+  PBM110:{desc:"Emergency Call Out (Setup Fee)",rate:500.00},
+  PBM111:{desc:"Hourly Rate for Audits / Troubleshooting",rate:125.00},
+  PBM123:{desc:"Set up fee for jobs less than 500ft",rate:1250.00},
+  PBM135:{desc:"Dig and retrieve existing pipe",rate:425.00},
+  PBM152:{desc:"Hourly Supervisor",rate:85.00},
+  PBM154:{desc:"Hourly Manager",rate:100.00},
+  PBM155:{desc:"Hourly 2 Man Aerial Crew",rate:175.00},
+  PBM164:{desc:"Mob/Demob",rate:500.00},
+  PBM175:{desc:"Hourly Underground Crew",rate:175.00},
+  // Uniti Splicing
+  UNSP01:{desc:"Fusion Splice Cost Per Fiber, 1-24",rate:24.00},
+  UNSP02:{desc:"Fusion Splice Cost Per Fiber, 25-96",rate:21.00},
+  UNSP03:{desc:"Fusion Splice Cost per Fiber, >96",rate:16.50},
+  UNSP04:{desc:"Ribbon Splice Cost Per Ribbon, 1-96",rate:14.50},
+  UNSP05:{desc:"Ribbon Splice Cost per Ribbon, >96",rate:12.00},
+  UNSP06:{desc:"Prep cables into new closure",rate:200.00},
+  UNSP07:{desc:"Re-entry (Enclosure)",rate:150.00},
+  UNSP08:{desc:"Re-entry Aerial (Enclosure)",rate:165.00},
+  UNSP09:{desc:"Mid-Sheath (Includes Enclosure Prep)",rate:250.00},
+  UNSP10:{desc:"Add new cable(s) to existing closure",rate:165.00},
+  UNSP11:{desc:"Install FDP Panel",rate:75.00},
+  UNSP12:{desc:"Backboard Installation",rate:150.00},
+  UNSP13:{desc:"Test (OTDR) Fibers Per Fiber",rate:10.00},
+  UNSP14:{desc:"Emergency Call Out (Setup Fee)",rate:500.00},
+  UNSP15:{desc:"Hourly Rate for Audits",rate:75.00},
+  UNSP16:{desc:"Mobilization Fee",rate:200.00},
+  UNSP17:{desc:"Remove fiber from conduit",rate:1.00},
+  UNSP18:{desc:"Cable Bonding",rate:25.00},
+  // Uniti Construction (UNGAM = underground aerial)
+  UNGA02:{desc:"Directional Bore 0-200",rate:11.50},
+  UNGA24:{desc:"Pull Fiber",rate:1.00},
+  UNGA25:{desc:"Decom Fiber",rate:1.00},
+  UNGA26:{desc:"Install Locate Wire",rate:0.25},
+  UNGA49:{desc:"ISP Entry/Lb Adder (10-19ft)",rate:100.00},
+  UNGA52:{desc:"Conduit Install Inside/Outside of Building (Advanced)",rate:20.00},
+  UNGA54:{desc:"Remove and Replace Ceiling Tiles",rate:5.00},
+  UNGA55:{desc:"Mount Cabinet On Backboard/Wall (2x2ft)",rate:150.00},
+  UNGA59:{desc:"MPO and LGX placement (Wall Mount)",rate:150.00},
+  UNGA66:{desc:"Site Visit Charge - Can't Complete Work - Uniti At Fault",rate:250.00},
+  UNGA75:{desc:"Admin, close outs and red lines",rate:250.00},
+  UNGA82:{desc:"Mobilization Fee (When Released 1 Job 2.5+ Hours Away)",rate:200.00},
+  UNGA85:{desc:"Set up fee for jobs less than 500ft",rate:1250.00},
+  UNGAM01:{desc:"Directional Bore 0-200",rate:12.00},
+  UNGAM13:{desc:"Prep HH (Double Lid)",rate:200.00},
+  UNGAM42:{desc:"Core Bore",rate:250.00},
+  UNGAM98:{desc:"Set up fee for jobs less than 500ft",rate:1250.00},
+  // Highline
+  HLM31:{desc:"Hourly Manager",rate:100.00},
+  HLM32:{desc:"Hourly 2 Man Aerial Crew",rate:175.00},
+  HLM40:{desc:"Removal of all existing strand, cables, pole hardware, and equipment, including down guys & anchors. (if required)",rate:0.55},
+  HLM41:{desc:"Top Pole",rate:50.00},
+  HLM48:{desc:"Mob/Demob (requires pre approval)",rate:500.00},
+};
+
+const BUILD_FN = "def build(config, out_path):\n    styles = getSampleStyleSheet()\n    def sty(name, **kw):\n        return ParagraphStyle(name, parent=styles[\"Normal\"], **kw)\n\n    s_title   = sty(\"T\",  fontName=\"Helvetica-Bold\", fontSize=22, textColor=BRAND_BLUE, leading=26)\n    s_bold    = sty(\"B\",  fontName=\"Helvetica-Bold\", fontSize=10, leading=12)\n    s_norm    = sty(\"N\",  fontName=\"Helvetica\",      fontSize=9.5, leading=12)\n    s_contact = sty(\"C\",  fontName=\"Helvetica\",      fontSize=9,   leading=12)\n    s_projblue= sty(\"P\",  fontName=\"Helvetica-Bold\", fontSize=11,  textColor=BRAND_BLUE, leading=14)\n    s_invnum  = sty(\"I\",  fontName=\"Helvetica\",      fontSize=13,  textColor=BRAND_BLUE, alignment=TA_CENTER, leading=16)\n    s_we      = sty(\"WE\", fontName=\"Helvetica\",      fontSize=10,  leading=13)\n    s_right   = sty(\"R\",  fontName=\"Helvetica\",      fontSize=9.5, alignment=TA_RIGHT, leading=12)\n    s_logo    = sty(\"L\",  fontName=\"Helvetica-Bold\", fontSize=22,  textColor=BRAND_BLUE, alignment=TA_RIGHT, leading=24)\n\n    buf = io.BytesIO()\n    doc = SimpleDocTemplate(buf, pagesize=letter,\n        leftMargin=0.6*inch, rightMargin=0.6*inch,\n        topMargin=0.5*inch,  bottomMargin=0.5*inch)\n    story = []\n\n    # \u2500\u2500 Header \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    left_cell = [\n        Paragraph(\"INVOICE\", s_title), Spacer(1, 4),\n        Paragraph(\"<b>TDC Communications, Inc</b>\", s_bold),\n        Paragraph(\"777 Cedar Dr W\", s_norm),\n        Paragraph(\"Hamilton, GA 31811-3734\", s_norm),\n    ]\n    mid_cell = [\n        Spacer(1, 14),\n        Paragraph(\"Toby.Carroll@tdccommunications.com\", s_contact),\n        Paragraph(\"+1 (706) 461-2600\", s_contact),\n        Paragraph(\"www.tdccommunications.com\", s_contact),\n    ]\n    right_cell = [\n        Paragraph(\"TDC\", s_logo),\n        Paragraph(\"<font size=10 color='#1F4E79'><b>COMMUNICATIONS</b></font>\", s_right),\n    ]\n    hdr = Table([[left_cell, mid_cell, right_cell]],\n                colWidths=[2.6*inch, 2.5*inch, 2.2*inch])\n    hdr.setStyle(TableStyle([\n        (\"VALIGN\",(0,0),(-1,-1),\"TOP\"),\n        (\"LEFTPADDING\",(0,0),(-1,-1),0), (\"RIGHTPADDING\",(0,0),(-1,-1),0),\n        (\"TOPPADDING\",(0,0),(-1,-1),0),  (\"BOTTOMPADDING\",(0,0),(-1,-1),0),\n    ]))\n    story += [hdr, Spacer(1, 18)]\n\n    # \u2500\u2500 Bill-to / project bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    proj = Paragraph(f\"<font color='#1F4E79'><b>{config['customer_project']}</b></font>\", s_projblue)\n    bt   = [Paragraph(\"<b>Bill to</b>\", s_bold)] + [Paragraph(ln, s_norm) for ln in config[\"bill_to\"]]\n    inv_no = config.get(\"invoice_no\") or \"&nbsp;\"\n    inv_no_cell = [Spacer(1, 22), Paragraph(f\"<font color='#1F4E79'><b>{inv_no}</b></font>\", s_invnum)]\n\n    bt_tbl = Table([[proj,\"\",\"\"],[bt, inv_no_cell, [Spacer(1,1)]]],\n                   colWidths=[2.9*inch, 2.3*inch, 2.1*inch])\n    bt_tbl.setStyle(TableStyle([\n        (\"VALIGN\",(0,0),(-1,-1),\"TOP\"),\n        (\"BACKGROUND\",(0,0),(-1,-1),LIGHT_BLUE_BG),\n        (\"LEFTPADDING\",(0,0),(-1,-1),10), (\"RIGHTPADDING\",(0,0),(-1,-1),10),\n        (\"TOPPADDING\",(0,0),(-1,-1),8),   (\"BOTTOMPADDING\",(0,0),(-1,-1),8),\n        (\"SPAN\",(0,0),(2,0)),\n    ]))\n    story += [bt_tbl]\n\n    # \u2500\u2500 W/E line (Highline and PB jobs) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    we = config.get(\"week_ending\",\"\").strip()\n    if we:\n        story += [Spacer(1,6), Paragraph(f\"W/E {we}\", s_we)]\n\n    story += [Spacer(1, 16)]\n\n    # \u2500\u2500 Invoice details \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    dl = [\n        Paragraph(\"<b>Invoice details</b>\", s_bold),\n        Paragraph(f\"Invoice no.: {config.get('invoice_no','')}\", s_norm),\n        Paragraph(f\"Invoice date: {config['invoice_date']}\", s_norm),\n        Paragraph(f\"Due date: {config['due_date']}\", s_norm),\n    ]\n    dr = [\n        Spacer(1, 12),\n        Paragraph(f\"Job Name: {config['job_name']}\", s_norm),\n        Paragraph(f\"Project Information: {config['project_info']}\", s_norm),\n        Paragraph(f\"Coordinator: {config['coordinator']}\", s_norm),\n    ]\n    det = Table([[dl, dr]], colWidths=[2.9*inch, 4.4*inch])\n    det.setStyle(TableStyle([\n        (\"VALIGN\",(0,0),(-1,-1),\"TOP\"),\n        (\"LEFTPADDING\",(0,0),(-1,-1),0), (\"RIGHTPADDING\",(0,0),(-1,-1),0),\n    ]))\n    story += [det, Spacer(1,14),\n              HRFlowable(width=\"100%\", thickness=0.5, color=colors.lightgrey,\n                         spaceBefore=0, spaceAfter=8, dash=(2,2))]\n\n    # \u2500\u2500 Line items \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    data  = [[\"#\",\"Product or service\",\"Description\",\"Qty\",\"Rate\",\"Amount\"]]\n    total = 0.0\n    for i, li in enumerate(config[\"line_items\"], 1):\n        amt    = li[\"qty\"] * li[\"rate\"]\n        total += amt\n        # Ensure description uses CODE-Description format with dash\n        desc = li[\"desc\"]\n        code = li[\"code\"]\n        if not desc.startswith(code):\n            desc = f\"{code}-{desc}\"\n        elif desc.startswith(code+\" \"):\n            desc = f\"{code}-{desc[len(code)+1:]}\"\n        data.append([\n            f\"{i}.\",\n            Paragraph(f\"<b>{code}</b>\", s_norm),\n            Paragraph(desc, s_norm),\n            str(li[\"qty\"]),\n            money(li[\"rate\"]),\n            money(amt),\n        ])\n\n    items_tbl = Table(data,\n        colWidths=[0.35*inch,1.3*inch,3.0*inch,0.6*inch,0.9*inch,1.1*inch],\n        repeatRows=1)\n    items_tbl.setStyle(TableStyle([\n        (\"FONTNAME\",(0,0),(-1,0),\"Helvetica\"),\n        (\"FONTSIZE\",(0,0),(-1,0),9),\n        (\"TEXTCOLOR\",(0,0),(-1,0),colors.grey),\n        (\"ALIGN\",(3,0),(5,-1),\"RIGHT\"),\n        (\"LINEBELOW\",(0,0),(-1,0),0.5,colors.lightgrey),\n        (\"LINEBELOW\",(0,1),(-1,-1),0.3,colors.lightgrey),\n        (\"VALIGN\",(0,0),(-1,-1),\"TOP\"),\n        (\"FONTSIZE\",(0,1),(-1,-1),9.5),\n        (\"TOPPADDING\",(0,0),(-1,-1),8),\n        (\"BOTTOMPADDING\",(0,0),(-1,-1),8),\n    ]))\n    story += [items_tbl, Spacer(1,10)]\n\n    # \u2500\u2500 Total \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    tot_tbl = Table([[\"\",\"Total\",money(total)]],\n                    colWidths=[4.65*inch,1.5*inch,1.1*inch])\n    tot_tbl.setStyle(TableStyle([\n        (\"FONTNAME\",(1,0),(1,0),\"Helvetica-Bold\"), (\"FONTSIZE\",(1,0),(1,0),10),\n        (\"FONTNAME\",(2,0),(2,0),\"Helvetica-Bold\"), (\"FONTSIZE\",(2,0),(2,0),14),\n        (\"ALIGN\",(1,0),(1,0),\"LEFT\"), (\"ALIGN\",(2,0),(2,0),\"RIGHT\"),\n        (\"LINEABOVE\",(1,0),(2,0),0.5,colors.lightgrey),\n        (\"TOPPADDING\",(0,0),(-1,-1),6), (\"BOTTOMPADDING\",(0,0),(-1,-1),6),\n    ]))\n    story += [tot_tbl, Spacer(1,24)]\n\n    if config.get(\"note\"):\n        story.append(Paragraph(\"<font size=12>Note to customer</font>\", s_norm))\n        story.append(Spacer(1,4))\n        story.append(Paragraph(config[\"note\"], s_norm))\n\n    doc.build(story)\n    buf.seek(0)\n    return buf.read(), total\n\ndef main():\n    p = argparse.ArgumentParser()\n    p.add_argument(\"--out\", required=True)\n    p.add_argument(\"--config\")\n    args = p.parse_args()\n    cfg = json.load(open(args.config)) if args.config else json.load(sys.stdin)\n    pdf_bytes, total = build(cfg, args.out)\n    with open(args.out,\"wb\") as f: f.write(pdf_bytes)\n    print(f\"Wrote {args.out} | Total {money(total)}\")\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())";
+
+const $=id=>document.getElementById(id);
+const dz=$('dz'), fi=$('fi'), btnProc=$('btn-proc');
+
+// Set default date
+(()=>{ const t=new Date(); $('fd').value=t.toISOString().slice(0,10); })();
+
+// Auto-fill coordinator and W/E hint when customer changes
+$('fc').addEventListener('change',()=>{
+  const c=CUSTS[$('fc').value];
+  if(!c) return;
+  $('fco').value=c.coordinator;
+  $('fwe').placeholder=c.weekEnding?'e.g. 06.26.26':'Not used for this customer';
+});
+
+// File handling
+fi.addEventListener('change',e=>addFiles(e.target.files));
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');addFiles(e.dataTransfer.files)});
+
+function addFiles(files){
+  Array.from(files).forEach(f=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    S.files.push({file:f,name:f.name,type:(ext==='xlsx'||ext==='xls')?'excel':'pdf'});
+  });
+  renderFiles();
+}
+
+function renderFiles(){
+  const fl=$('flist'); fl.innerHTML='';
+  S.files.forEach((f,i)=>{
+    const d=document.createElement('div'); d.className='fi';
+    d.innerHTML='<span class="fi-icon">'+(f.type==='excel'?'&#128202;':'&#128196;')+'</span>'
+      +'<div style="flex:1"><div class="fi-name">'+f.name+'</div><div class="fi-type">'+(f.type==='excel'?'In-House Daily':'Sub Invoice PDF')+'</div></div>'
+      +'<button class="fi-rm" data-i="'+i+'">&#10005;</button>';
+    fl.appendChild(d);
+  });
+  fl.querySelectorAll('.fi-rm').forEach(b=>b.addEventListener('click',e=>{
+    S.files.splice(+e.target.dataset.i,1); renderFiles();
+  }));
+  btnProc.disabled=S.files.length===0;
+}
+
+// Process files
+btnProc.addEventListener('click',async()=>{
+  // Validate required fields
+  const missing=[];
+  if(!$('fc').value) missing.push('Customer');
+  if(!$('finv').value.trim()) missing.push('Invoice Number');
+  if(!$('fjn').value.trim()) missing.push('Job Name');
+  if(!$('fpi').value.trim()) missing.push('Project Information');
+  if(missing.length){
+    $('st1').innerHTML='<div class="sbox err"><span class="sbox-icon">&#9888;</span><div class="sbox-text"><strong>Please fill in required fields:</strong>'+missing.join(', ')+'</div></div>';
+    ['fc','finv','fjn','fpi'].forEach(id=>{
+      if(!$(id).value.trim()) $(id).classList.add('required-empty');
+      else $(id).classList.remove('required-empty');
+    });
+    return;
+  }
+
+  btnProc.disabled=true;
+  btnProc.innerHTML='<div class="spin"></div><span>Reading files...</span>';
+  $('st1').innerHTML='<div class="sbox info"><span class="sbox-icon">&#128269;</span><div class="sbox-text"><strong>Reading your files...</strong>AI extracting line items. About 20 seconds.<div class="prog-wrap"><div class="prog-lbl" id="pl">Preparing...</div><div class="prog-bar"><div class="prog-fill" id="pf" style="width:6%"></div></div></div></div></div>';
+
+  const prog=(p,t)=>{if($('pf'))$('pf').style.width=p+'%';if($('pl'))$('pl').textContent=t;};
+
+  try{
+    prog(20,'Converting files...');
+    const payloads=await Promise.all(S.files.map(async f=>{
+      const b64=await toB64(f.file);
+      return {name:f.name,type:f.type,b64,mime:f.type==='excel'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf'};
+    }));
+    prog(40,'Sending to AI...');
+
+    const rateTable=Object.entries(RATES).map(([k,v])=>k+': $'+v.rate.toFixed(2)+' — '+v.desc).join('\n');
+    const sys='You are a data extraction assistant for TDC Communications.\nExtract line items from construction job files.\n\nTDC RATES (always use these):\n'+rateTable+'\n\nRules:\n- Excel dailies: only rows with non-zero QTY\n- PDF sub invoices: only items with qty > 0\n- Combine same codes across files (sum qty)\n- sub_total = sum of what TDC paid subs (from sub invoice totals)\n\nReturn ONLY valid JSON:\n{"line_items":[{"code":"PB35","desc":"Single Fusion Fiber Splicing","qty":3,"rate":20.00}],"sub_total":0,"notes":"brief scope"}';
+
+    const content=[];
+    for(const fp of payloads) content.push({type:"document",source:{type:"base64",media_type:fp.mime,data:fp.b64}});
+    content.push({type:"text",text:"Extract all line items with qty > 0. Use TDC rates. Return JSON only."});
+
+    prog(60,'AI reading line items...');
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:getAuthHeaders(),body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:sys,messages:[{role:"user",content}]})});
+    prog(85,'Processing...');
+    const data=await resp.json();
+    if(data.error) throw new Error(data.error.message);
+    const txt=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    S.extracted=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    S.subTotal=S.extracted.sub_total||0;
+    prog(100,'Done!');
+    setTimeout(()=>showReview(),400);
+  }catch(e){
+    $('st1').innerHTML='<div class="sbox err"><span class="sbox-icon">&#9888;</span><div class="sbox-text"><strong>Error reading files</strong>'+e.message+'</div></div>';
+    btnProc.disabled=false;
+    btnProc.innerHTML='<span>Read Files &amp; Extract Line Items</span>';
+  }
+});
+
+function showReview(){
+  setPanel('p2'); setStep(2);
+  const items=S.extracted?.line_items||[];
+  const total=items.reduce((s,i)=>s+i.qty*i.rate,0);
+  const rows=items.map((it,idx)=>'<tr><td><span class="cbadge">'+it.code+'</span></td><td>'+it.desc+'</td><td><input type="number" class="qi" data-idx="'+idx+'" value="'+it.qty+'" min="0" style="width:65px;padding:4px 7px;font-size:13px;border:1.5px solid var(--border);border-radius:6px"></td><td>$'+it.rate.toFixed(2)+'</td><td class="ra" style="font-weight:700">$'+(it.qty*it.rate).toFixed(2)+'</td></tr>').join('');
+  $('rev-body').innerHTML='<div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">'+items.length+' line item'+(items.length!==1?'s':'')+' found across '+S.files.length+' file'+(S.files.length!==1?'s':'')+'</div><table class="etbl"><thead><tr><th>Code</th><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr class="tot"><td colspan="4" style="text-align:right;font-weight:700;padding-right:10px">TOTAL</td><td id="rev-tot" style="font-weight:700;padding:7px 10px">$'+total.toFixed(2)+'</td></tr></tfoot></table><div class="divider"></div><div style="font-size:12px;color:var(--muted)">&#128161; Edit quantities if needed. Amounts update live.</div>';
+  $('rev-body').querySelectorAll('.qi').forEach(inp=>inp.addEventListener('input',()=>{
+    S.extracted.line_items[+inp.dataset.idx].qty=parseFloat(inp.value)||0; recalc();
+  }));
+}
+
+function recalc(){
+  const items=S.extracted?.line_items||[];
+  const total=items.reduce((s,i)=>s+i.qty*i.rate,0);
+  if($('rev-tot')) $('rev-tot').textContent='$'+total.toFixed(2);
+  $('rev-body').querySelectorAll('.qi').forEach(inp=>{
+    const it=items[+inp.dataset.idx];
+    inp.closest('tr').querySelector('.ra').textContent='$'+(it.qty*it.rate).toFixed(2);
+  });
+}
+
+$('btn-gen').addEventListener('click',async()=>{
+  $('btn-gen').disabled=true;
+  $('btn-gen').innerHTML='<div class="spin"></div><span>Generating PDF...</span>';
+  $('st2').innerHTML='<div class="sbox info"><span class="sbox-icon">&#9881;</span><div class="sbox-text"><strong>Building invoice PDF...</strong>About 20 seconds.</div></div>';
+  try{
+    const custKey=$('fc').value;
+    const cust=CUSTS[custKey];
+    const dv=$('fd').value;
+    const invDate=fmtDate(dv), dueDate=addDays(dv,30);
+    const items=(S.extracted?.line_items||[]).filter(i=>i.qty>0);
+    const total=items.reduce((s,i)=>s+i.qty*i.rate,0);
+    const invNo=$('finv').value.trim();
+    const jobName=$('fjn').value.trim();
+    const we=$('fwe').value.trim();
+
+    const config={
+      invoice_no: invNo,
+      invoice_date: invDate,
+      due_date: dueDate,
+      customer_project: cust.project,
+      bill_to: cust.billTo,
+      job_name: jobName,
+      project_info: $('fpi').value.trim(),
+      coordinator: $('fco').value.trim()||cust.coordinator,
+      week_ending: we,
+      line_items: items.map(i=>{return {code:i.code,desc:i.desc,qty:i.qty,rate:i.rate}}),
+      note: $('fno').value.trim()
+    };
+
+    const sys='You are a PDF generation service for TDC Communications invoices.\nWhen given invoice JSON and the build Python function, execute it and return ONLY:\n{"pdf_b64":"<base64 PDF bytes>","total":<number>}\n\nThe build function (uses reportlab):\n'+BUILD_FN+'\n\nImports needed:\nimport io, base64\nfrom reportlab.lib import colors\nfrom reportlab.lib.enums import TA_CENTER, TA_RIGHT\nfrom reportlab.lib.pagesizes import letter\nfrom reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet\nfrom reportlab.lib.units import inch\nfrom reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle\n\nCall build(config, None), base64.b64encode(result[0]).decode(). Return ONLY JSON.';
+
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:getAuthHeaders(),body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:sys,messages:[{role:"user",content:"Generate PDF: "+JSON.stringify(config)}]})});
+    const data=await resp.json();
+    if(data.error) throw new Error(data.error.message);
+    const txt=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const result=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    S.pdfB64=result.pdf_b64;
+    S.pdfFilename=invNo+'_'+jobName.replace(/[\s\/]+/g,'_')+'.pdf';
+    showResult(config,total,items,custKey,cust);
+  }catch(e){
+    $('st2').innerHTML='<div class="sbox err"><span class="sbox-icon">&#9888;</span><div class="sbox-text"><strong>Error</strong>'+e.message+'</div></div>';
+    $('btn-gen').disabled=false;
+    $('btn-gen').innerHTML='Generate Invoice PDF';
+  }
+});
+
+function showResult(config,total,items,custKey,cust){
+  setPanel('p3'); setStep(3);
+
+  const rows=items.map(i=>'<div class="res-row"><span><strong>'+i.code+'</strong> &times; '+i.qty+' @ $'+i.rate.toFixed(2)+'</span><span>$'+(i.qty*i.rate).toFixed(2)+'</span></div>').join('');
+  $('res-sum').innerHTML='<div style="font-weight:700;font-size:13px;color:var(--blue);margin-bottom:8px">'+config.invoice_no+' &mdash; '+config.job_name+' &mdash; '+config.invoice_date+'</div>'+rows+'<div class="res-row"><span>INVOICE TOTAL</span><span>$'+total.toLocaleString('en-US',{minimumFractionDigits:2})+'</span></div>';
+
+  const margin=S.subTotal>0?((total-S.subTotal)/total*100).toFixed(1):null;
+  if(margin){ $('margin-pill').textContent='Margin: '+margin+'%'; $('margin-pill').classList.remove('hidden'); }
+
+  $('btn-dl').onclick=()=>{
+    if(!S.pdfB64){ alert('PDF not ready'); return; }
+    const bytes=atob(S.pdfB64), arr=new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+    const blob=new Blob([arr],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download=S.pdfFilename; a.click(); URL.revokeObjectURL(url);
+  };
+
+  if(cust.isPB){
+    $('email-card').classList.add('hidden');
+    $('upload-card').classList.remove('hidden');
+    $('btn-new-pb').onclick=resetAll;
+  } else {
+    $('upload-card').classList.add('hidden');
+    $('email-card').classList.remove('hidden');
+    const totalFmt='$'+total.toLocaleString('en-US',{minimumFractionDigits:2});
+    const subj=config.invoice_no+' '+config.job_name+' '+config.project_info+' '+totalFmt;
+    const body='Please confirm receipt of invoice. Thank you.\n\nKindest Regards,\n\nStephanie Petty\nstephanie.petty@tdccommunications.com\n706-326-7135\n\nTDC Communications';
+    $('em-to').value=cust.email||'';
+    $('em-cc').value=cust.cc||'';
+    $('em-sub').value=subj;
+    $('em-body').value=body;
+    $('btn-mailto').onclick=()=>{
+      const to=encodeURIComponent($('em-to').value||'');
+      const cc=$('em-cc').value?'&cc='+encodeURIComponent($('em-cc').value):'';
+      window.location.href='mailto:'+to+'?'+cc+'&subject='+encodeURIComponent($('em-sub').value)+'&body='+encodeURIComponent($('em-body').value);
+    };
+    $('btn-copy').onclick=async()=>{
+      const txt='To: '+$('em-to').value+'\nCC: '+$('em-cc').value+'\nSubject: '+$('em-sub').value+'\n\n'+$('em-body').value;
+      try{ await navigator.clipboard.writeText(txt); $('copy-confirm').classList.remove('hidden'); setTimeout(()=>$('copy-confirm').classList.add('hidden'),3000); }
+      catch(e){ alert('Select and copy manually.'); }
+    };
+    $('btn-new').onclick=resetAll;
+  }
+}
+
+$('btn-back').addEventListener('click',()=>{setPanel('p1');setStep(1);});
+function resetAll(){
+  S.files=[];S.extracted=null;S.pdfB64=null;S.subTotal=0;
+  renderFiles(); $('st1').innerHTML=''; $('st2').innerHTML='';
+  ['fjn','fpi','fno','finv','fwe'].forEach(id=>$(id).value='');
+  $('fc').value=''; $('fco').value='';
+  btnProc.disabled=true;
+  btnProc.innerHTML='<span>Read Files &amp; Extract Line Items</span>';
+  setPanel('p1'); setStep(1);
+}
+
+function setPanel(id){ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
+function setStep(n){ [1,2,3].forEach(i=>{ const el=$('s'+i); el.classList.remove('active','done'); if(i<n) el.classList.add('done'); else if(i===n) el.classList.add('active'); }); }
+function toB64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=()=>rej(new Error('Read failed')); r.readAsDataURL(file); }); }
+function fmtDate(iso){ const [y,m,d]=iso.split('-'); return m+'/'+d+'/'+y; }
+function addDays(iso,days){ const dt=new Date(iso+'T12:00:00'); dt.setDate(dt.getDate()+days); return fmtDate(dt.toISOString().slice(0,10)); }
+</script>
+</body>
+</html>
