@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 function getAuthHeaders(){
   const k=getKey();
   if(!k) throw new Error('No API key saved. Paste your Anthropic API key in the bar at the top and click Save.');
-  return {'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'};
+  return {'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-ipc':'true'};
 }
 
 const S = { files:[], extracted:null, pdfB64:null, pdfFilename:null, subTotal:0 };
