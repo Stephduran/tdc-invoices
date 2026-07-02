@@ -318,7 +318,7 @@ function updateKeyStatus(){
 document.addEventListener('DOMContentLoaded',()=>{
   updateKeyStatus();
  $('#api-save-btn').addEventListener('click',()=>{
-    const v=$('api-key-input').value.trim();
+    const v=$('#api-key-input').val().trim();
     if(!v){ alert('Please paste your Anthropic API key first.'); return; }
     if(!v.startsWith('sk-ant-')){ alert('That doesn\'t look like an Anthropic API key — it should start with sk-ant-'); return; }
     saveKey(v);
